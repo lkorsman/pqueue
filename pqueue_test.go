@@ -1,6 +1,7 @@
 package pqueue_test
 
 import(
+	"sync"
 	"testing"
 
 	"github.com/lkorsman/pqueue"
@@ -146,5 +147,117 @@ func TestDuplicates(t *testing.T) {
 			t.Errorf("out of order: got %d after %d", curr, prev)
 		}
 		prev = curr
+	}
+}
+
+// --- Custom struct test ---
+
+type Task struct {
+	Name     string
+	Priority int
+}
+
+func TestCustomStruct(t *testing.T) {
+	pq := pqueue.New[Task](func(a, b Task) bool {
+		return a.Priority < b.Priority
+	})
+
+	pq.Push(Task{"low", 10})
+	pq.Push(Task{"critical", 1})
+	pq.Push(Task{"medium", 5})
+
+	first, _ := pq.Pop()
+	if first.Name != "critical" {
+		t.Errorf("expected 'critical' task first, got '%s'", first.Name)
+	}
+
+	second, _ := pq.Pop()
+	if second.Name != "medium" {
+		t.Errorf("expected 'medium' task second, got '%s'", second.Name)
+	}
+}
+
+// --- String heap test ---
+
+func TestStringMinHeap(t *testing.T) {
+	pq := pqueue.New[string](pqueue.Min[string]())
+	pq.PushAll("banana", "apple", "cherry")
+
+	first, _ := pq.Pop()
+	if first != "apple" {
+		t.Errorf("got %q, want %q", first, "apple")
+	}
+}
+
+// --- NewWithCapacity test ---
+
+func TestNewWithCapacity(t *testing.T) {
+	pq := pqueue.NewWithCapacity[int](pqueue.Min[int](), 100)
+	pq.PushAll(3, 1, 2)
+	val, _ := pq.Pop()
+	if val != 1 {
+		t.Errorf("got %d, want %d", val, 1)
+	}
+}
+
+// --- SyncPriorityQueue tests ---
+
+func TestSyncPriorityQueue_ConcurrentPush(t *testing.T) {
+	pq := pqueue.NewSync[int](pqueue.Min[int]())
+	var wg sync.WaitGroup
+	n := 1000
+
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func(val int) {
+			defer wg.Done()
+			pq.Push(val)
+		}(i)
+	}
+	wg.Wait()
+
+	if pq.Len() != n {
+		t.Errorf("Len() = %d after %d concurrent pushes, want %d", pq.Len(), n, n)
+	}
+}
+
+func TestSyncPriorityQueue_ConcurrentPopOrder(t *testing.T) {
+	pq := pqueue.NewSync[int](pqueue.Min[int]())
+	pq.PushAll(5, 2, 8, 1, 9, 3)
+
+	// Drain sequentially and verify order
+	results := pq.Drain()
+	for i := 1; i < len(results); i++ {
+		if results[i] < results[i-1] {
+			t.Errorf("out of order after drain: %v", results)
+		}
+	}
+}
+
+// --- Benchmarks ---
+
+func BenchmarchPush(b *testing.B) {
+	pq := pqueue.NewWithCapacity[int](pqueue.Min[int](), b.N)
+	for i := 0; i < b.N; i++ {
+		pq.Push(i)
+	}
+}
+
+func BenchmarkPop(b *testing.B) {
+	pq := pqueue.NewWithCapacity[int](pqueue.Min[int](), b.N)
+	for i := 0; i < b.N; i++ {
+		pq.Push(i)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pq.Pop()
+	}
+}
+
+func BenchmarkPushPop(b *testing.B) {
+	pq := pqueue.New[int](pqueue.Min[int]())
+	for i := 0; i < b.N; i++ {
+		pq.Push(i)
+		pq.Pop()
 	}
 }
