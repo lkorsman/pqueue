@@ -56,3 +56,7 @@ pq.Push(Task{"write tests",   5})
 task, _ := pq.Pop()
 fmt.Println(task.Name) // "fix outage"
 ```
+
+## License
+
+MIT
