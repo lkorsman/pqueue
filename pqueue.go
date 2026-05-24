@@ -143,10 +143,10 @@ func (pq *PriorityQueue[T]) siftDown(i int) {
 		left := 2*i + 1
 		right := 2*i + 2
 
-		if left < n && pq.less(pq.data[left], pq.data[right]) {
+		if left < n && pq.less(pq.data[left], pq.data[smallest]) {
 			smallest = left
 		}
-		if right < n && pq.less(pq.data[right], pq.data[left]) {
+		if right < n && pq.less(pq.data[right], pq.data[smallest]) {
 			smallest = right
 		}
 		if smallest == i {
