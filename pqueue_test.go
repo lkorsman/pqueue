@@ -234,6 +234,18 @@ func TestSyncPriorityQueue_ConcurrentPopOrder(t *testing.T) {
 	}
 }
 
+func TestSync_Push_And_Pop(t *testing.T) {
+	pq := pqueue.NewSync[int](pqueue.Min[int]())
+	pq.Push(3)
+	pq.Push(1)
+	pq.Push(2)
+
+	val, ok := pq.Pop()
+	if !ok || val != 1 {
+		t.Errorf("Pop() = (%d, %v), want (1, true)", val, ok)
+	}
+}
+
 // --- Benchmarks ---
 
 func BenchmarchPush(b *testing.B) {
