@@ -246,6 +246,21 @@ func TestSync_Push_And_Pop(t *testing.T) {
 	}
 }
 
+func TestSync_Peek_DoesNotRemove(t *testing.T) {
+	pq := pqueue.NewSync[int](pqueue.Min[int]())
+	pq.PushAll(3, 1, 2)
+
+	for i := 0; i < 3; i++ {
+		val, ok := pq.Peek()
+		if !ok || val != 1 {
+			t.Errorf("Peek() = (%d, %v), want (1, true)", val, ok)
+		}
+	}
+	if pq.Len() != 3 {
+		t.Errorf("Len() = %d after Peek, want 3", pq.Len())
+	}
+}
+
 // --- Benchmarks ---
 
 func BenchmarchPush(b *testing.B) {
